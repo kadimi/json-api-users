@@ -105,7 +105,7 @@ class JSON_API_Users_Controller {
 		return self::verify( false );
 	}
 
-	public function password() {
+	private function password() {
 		$c = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$l = strlen( $c );
 		$p = '';
