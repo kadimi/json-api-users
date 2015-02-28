@@ -36,7 +36,39 @@ class JSON_API_Users_Controller {
 		return $users;
 	}
 
-	public function verify ( $verified = true ) {
+	public function autologin( $verified = true ) {
+
+		global $json_api;
+
+		if ( ! $json_api->query->cookie ) {
+			$json_api->error( "You must include a 'cookie' var in your request. Use the `generate_auth_cookie` Auth API method." );
+		}
+		
+		$user_id = wp_validate_auth_cookie( $json_api->query->cookie, 'logged_in' );
+		
+		if ( ! $user_id) {
+			$json_api->error( "Invalid authentication cookie. Use the `generate_auth_cookie` method." );
+		}
+
+		$target_user_id = isset( $_GET[ 'id' ] ) 
+			? $_GET[ 'id' ]
+			: 0
+		;
+		if ( ! $target_user_id ) {
+			$json_api->error( "You must include a 'id' var in your request." );
+		}
+
+		if ( ! user_can( $user_id, 'edit_users' ) ) {
+			$json_api->error( "This user can't edit users" );
+		}
+
+		$p = self::password();
+		delete_user_meta( $target_user_id, 'pkg_autologin_code' );
+		add_user_meta( $target_user_id, 'pkg_autologin_code', $p, true );
+		return array( 'key' => $p );
+	}
+
+	public function verify( $verified = true ) {
 
 		global $json_api;
 
@@ -69,7 +101,17 @@ class JSON_API_Users_Controller {
 		return array();
 	}
 
-	public function unverify () {
+	public function unverify() {
 		return self::verify( false );
+	}
+
+	public function password() {
+		$c = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$l = strlen( $c );
+		$p = '';
+		for ( $i = 0; $i < 30; $i++ ) {
+			$p .= $c[ rand( 0, $l - 1 ) ];
+		}
+		return $p;
 	}
 }
